@@ -53,12 +53,11 @@
             lblResumen = new Label();
             lblReproduciendo = new Label();
             groupBox4 = new GroupBox();
+            btnCargarAudio = new Button();
             lblResultLinkedList = new Label();
             lblResultList = new Label();
             lblResultPropia = new Label();
             btnBenchmark = new Button();
-            numCantidadTest = new NumericUpDown();
-            label5 = new Label();
             ((System.ComponentModel.ISupportInitialize)dgvCola).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numBpm).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numDuracion).BeginInit();
@@ -66,7 +65,6 @@
             groupBox2.SuspendLayout();
             groupBox3.SuspendLayout();
             groupBox4.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)numCantidadTest).BeginInit();
             SuspendLayout();
             // 
             // btnAgregarFinal
@@ -313,18 +311,27 @@
             // 
             // groupBox4
             // 
+            groupBox4.Controls.Add(btnCargarAudio);
             groupBox4.Controls.Add(lblResultLinkedList);
             groupBox4.Controls.Add(lblResultList);
             groupBox4.Controls.Add(lblResultPropia);
             groupBox4.Controls.Add(btnBenchmark);
-            groupBox4.Controls.Add(numCantidadTest);
-            groupBox4.Controls.Add(label5);
             groupBox4.Location = new Point(27, 706);
             groupBox4.Name = "groupBox4";
             groupBox4.Size = new Size(1631, 249);
             groupBox4.TabIndex = 15;
             groupBox4.TabStop = false;
             groupBox4.Text = "BENCHMARK Y TELEMETRÍA";
+            // 
+            // btnCargarAudio
+            // 
+            btnCargarAudio.Location = new Point(498, 52);
+            btnCargarAudio.Name = "btnCargarAudio";
+            btnCargarAudio.Size = new Size(254, 40);
+            btnCargarAudio.TabIndex = 6;
+            btnCargarAudio.Text = "Cargar Audio (BPM)";
+            btnCargarAudio.UseVisualStyleBackColor = true;
+            btnCargarAudio.Click += btnCargarAudio_Click;
             // 
             // lblResultLinkedList
             // 
@@ -356,31 +363,13 @@
             // 
             // btnBenchmark
             // 
-            btnBenchmark.Location = new Point(634, 51);
+            btnBenchmark.Location = new Point(16, 52);
             btnBenchmark.Name = "btnBenchmark";
             btnBenchmark.Size = new Size(398, 40);
             btnBenchmark.TabIndex = 2;
             btnBenchmark.Text = "🚀 Iniciar Prueba de Rendimiento";
             btnBenchmark.UseVisualStyleBackColor = true;
             btnBenchmark.Click += btnBenchmark_Click;
-            // 
-            // numCantidadTest
-            // 
-            numCantidadTest.Location = new Point(332, 54);
-            numCantidadTest.Maximum = new decimal(new int[] { 100000, 0, 0, 0 });
-            numCantidadTest.Name = "numCantidadTest";
-            numCantidadTest.Size = new Size(210, 35);
-            numCantidadTest.TabIndex = 1;
-            numCantidadTest.Value = new decimal(new int[] { 25000, 0, 0, 0 });
-            // 
-            // label5
-            // 
-            label5.AutoSize = true;
-            label5.Location = new Point(16, 56);
-            label5.Name = "label5";
-            label5.Size = new Size(276, 30);
-            label5.TabIndex = 0;
-            label5.Text = "Cantidad de pistas para test:";
             // 
             // MainForm
             // 
@@ -403,7 +392,6 @@
             groupBox3.PerformLayout();
             groupBox4.ResumeLayout(false);
             groupBox4.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)numCantidadTest).EndInit();
             ResumeLayout(false);
         }
 
@@ -434,10 +422,9 @@
         private Label lblReproduciendo;
         private Label lblResumen;
         private Button btnBenchmark;
-        private NumericUpDown numCantidadTest;
-        private Label label5;
         private Label lblResultLinkedList;
         private Label lblResultList;
         private Label lblResultPropia;
+        private Button btnCargarAudio;
     }
 }

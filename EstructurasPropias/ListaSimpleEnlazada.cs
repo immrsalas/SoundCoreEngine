@@ -19,23 +19,20 @@ using System.Text;
 
 namespace SoundCoreEngine.EstructurasPropias
 {
-    /// <summary>
-    /// Lista Enlazada Simple construida desde cero con punteros/referencias directas.
-    /// Implementa IEnumerable<T> para permitir el uso de foreach y enlace a controles como DataGridView.
-    /// </summary>
     public class ListaSimpleEnlazada<T> : IEnumerable<T>
     {
-        // Puntero/Referencia al primer elemento de la lista
+        // Referencia al primer nodo
         public Nodo<T>? Cabeza { get; private set; }
 
-        // Contador de elementos en la lista
+        // NUEVO: Referencia directa al último nodo para lograr inserción O(1)
+        public Nodo<T>? Cola { get; private set; }
+
         public int Conteo { get; private set; }
 
-        // Propiedad que indica si la lista está vacía
         public bool EstaVacia => Cabeza == null;
 
         // =========================================================================
-        // 1. Inserción al final: Recorre la lista hasta encontrar el último nodo O(n)
+        // 1. Inserción al final optimizada a O(1) utilizando el puntero 'Cola'
         // =========================================================================
         public void AgregarAlFinal(T valor)
         {
@@ -44,15 +41,12 @@ namespace SoundCoreEngine.EstructurasPropias
             if (EstaVacia)
             {
                 Cabeza = nuevoNodo;
+                Cola = nuevoNodo; // La cabeza y la cola son el mismo nodo al inicio
             }
             else
             {
-                var actual = Cabeza!;
-                while (actual.Siguiente != null)
-                {
-                    actual = actual.Siguiente; // Avanza hasta el último nodo
-                }
-                actual.Siguiente = nuevoNodo; // Conecta el nuevo nodo al final
+                Cola!.Siguiente = nuevoNodo; // Conecta directo sin bucles O(1)
+                Cola = nuevoNodo;            // Actualiza la cola al nuevo nodo
             }
 
             Conteo++;
@@ -68,11 +62,19 @@ namespace SoundCoreEngine.EstructurasPropias
             if (EstaVacia)
             {
                 Cabeza = nuevoNodo;
+                Cola = nuevoNodo;
             }
             else
             {
                 nuevoNodo.Siguiente = Cabeza!.Siguiente;
                 Cabeza.Siguiente = nuevoNodo;
+
+                // Si se insertó después de la cabeza y la cabeza era el único elemento,
+                // el nuevo nodo ahora es la cola.
+                if (Cabeza == Cola)
+                {
+                    Cola = nuevoNodo;
+                }
             }
 
             Conteo++;
@@ -87,13 +89,19 @@ namespace SoundCoreEngine.EstructurasPropias
                 throw new InvalidOperationException("La cola de reproducción está vacía.");
 
             T valor = Cabeza!.Valor;
-            Cabeza = Cabeza.Siguiente; // La cabeza ahora pasa a ser el siguiente nodo
+            Cabeza = Cabeza.Siguiente;
             Conteo--;
+
+            if (EstaVacia)
+            {
+                Cola = null; // Si se vació la lista, limpiamos la cola
+            }
+
             return valor;
         }
 
         // =========================================================================
-        // 4. Inversión In-Place: Reorienta punteros O(n) tiempo, O(1) memoria
+        // 4. Inversión In-Place O(n) tiempo, O(1) memoria
         // =========================================================================
         public void Invertir()
         {
@@ -101,29 +109,34 @@ namespace SoundCoreEngine.EstructurasPropias
             Nodo<T>? actual = Cabeza;
             Nodo<T>? siguiente = null;
 
+            // Al invertir, la antigua Cabeza pasa a ser la nueva Cola
+            Cola = Cabeza;
+
             while (actual != null)
             {
-                siguiente = actual.Siguiente; // 1. Guarda la referencia del resto de la lista
-                actual.Siguiente = previo;    // 2. Invierte la dirección del puntero
-                previo = actual;              // 3. Avanza 'previo' un paso
-                actual = siguiente;           // 4. Avanza 'actual' un paso
+                siguiente = actual.Siguiente;
+                actual.Siguiente = previo;
+                previo = actual;
+                actual = siguiente;
             }
 
-            Cabeza = previo; // La nueva cabeza es el que era el último nodo
+            Cabeza = previo;
         }
 
         // =========================================================================
-        // 5. Inserción ordenada por un criterio (ej. BPM) O(n)
+        // 5. Inserción ordenada por un criterio O(n)
         // =========================================================================
         public void InsertarOrdenado(T valor, Comparison<T> comparador)
         {
             var nuevo = new Nodo<T>(valor);
 
-            // Si está vacía o el nuevo valor debe ir antes que la cabeza
             if (EstaVacia || comparador(valor, Cabeza!.Valor) < 0)
             {
                 nuevo.Siguiente = Cabeza;
                 Cabeza = nuevo;
+
+                if (Cola == null) Cola = nuevo; // Si era el primer nodo
+
                 Conteo++;
                 return;
             }
@@ -136,11 +149,18 @@ namespace SoundCoreEngine.EstructurasPropias
 
             nuevo.Siguiente = actual.Siguiente;
             actual.Siguiente = nuevo;
+
+            // Si se insertó al final de todo, actualizamos la Cola
+            if (nuevo.Siguiente == null)
+            {
+                Cola = nuevo;
+            }
+
             Conteo++;
         }
 
         // =========================================================================
-        // 6. Depurar duplicados sin estructuras auxiliares O(n^2) tiempo, O(1) espacio
+        // 6. Depurar duplicados
         // =========================================================================
         public void DepurarDuplicados(Func<T, T, bool> sonIguales)
         {
@@ -153,7 +173,12 @@ namespace SoundCoreEngine.EstructurasPropias
                 {
                     if (sonIguales(actual.Valor, corredor.Siguiente.Valor))
                     {
-                        // Salta el nodo duplicado para desconectarlo de la memoria
+                        // Si se elimina el nodo apuntado por Cola, actualizamos la Cola al corredor
+                        if (corredor.Siguiente == Cola)
+                        {
+                            Cola = corredor;
+                        }
+
                         corredor.Siguiente = corredor.Siguiente.Siguiente;
                         Conteo--;
                     }
@@ -170,19 +195,17 @@ namespace SoundCoreEngine.EstructurasPropias
         public void Limpiar()
         {
             Cabeza = null;
+            Cola = null;
             Conteo = 0;
         }
 
-        // =========================================================================
-        // Implementación de IEnumerable<T> con yield return para poder usar foreach
-        // =========================================================================
         public IEnumerator<T> GetEnumerator()
         {
             var actual = Cabeza;
             while (actual != null)
             {
-                yield return actual.Valor; // Retorna el valor actual
-                actual = actual.Siguiente;  // Avanza al siguiente nodo
+                yield return actual.Valor;
+                actual = actual.Siguiente;
             }
         }
 

@@ -230,46 +230,103 @@ namespace SoundCoreEngine
 
         private void btnBenchmark_Click(object sender, EventArgs e)
         {
-            int cantidad = numCantidadTest != null ? (int)numCantidadTest.Value : 25000;
+            int cantidadDatos = 25000;
 
-            // 1. Prueba Lista Propia (Inserción intermedia Up Next)
-            var listaP = new ListaSimpleEnlazada<Pista>();
-            var sw1 = Stopwatch.StartNew();
-            for (int i = 0; i < cantidad; i++)
+            var confirm = MessageBox.Show(
+                $"Se van a generar e ingresar {cantidadDatos:N0} datos reales directamente dentro de las 3 listas.\n\n¿Deseas iniciar la prueba?",
+                "Prueba de Carga Real",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (confirm != DialogResult.Yes) return;
+
+            // Usamos los nombres correctos de tus variables miembro y métodos de limpieza
+            _colaPropia.Limpiar();
+            _colaLinkedList.Clear();
+            _colaList.Clear();
+
+            // -------------------------------------------------------------
+            // 1. INSERCIÓN REAL: Lista Simple Propia (Nodos)
+            // -------------------------------------------------------------
+            Stopwatch swPropia = Stopwatch.StartNew();
+            for (int i = 1; i <= cantidadDatos; i++)
             {
-                listaP.ReproducirSiguiente(new Pista(i, $"Pista {i}", "Artista Test", 120, 180));
+                _colaPropia.AgregarAlFinal(new Pista(i, $"Pista {i}", "Artista Benchmark", 120 + (i % 40), 180));
             }
-            sw1.Stop();
+            swPropia.Stop();
+            double msPropia = swPropia.Elapsed.TotalMilliseconds;
 
-            // 2. Prueba .NET LinkedList<T>
-            var listaLL = new LinkedList<Pista>();
-            var sw2 = Stopwatch.StartNew();
-            for (int i = 0; i < cantidad; i++)
+            // -------------------------------------------------------------
+            // 2. INSERCIÓN REAL: .NET LinkedList<T> (Lista Doblemente Enlazada)
+            // -------------------------------------------------------------
+            Stopwatch swLinkedList = Stopwatch.StartNew();
+            for (int i = 1; i <= cantidadDatos; i++)
             {
-                if (listaLL.First == null) listaLL.AddFirst(new Pista(i, $"Pista {i}", "Artista Test", 120, 180));
-                else listaLL.AddAfter(listaLL.First, new Pista(i, $"Pista {i}", "Artista Test", 120, 180));
+                _colaLinkedList.AddLast(new Pista(i, $"Pista {i}", "Artista Benchmark", 120 + (i % 40), 180));
             }
-            sw2.Stop();
+            swLinkedList.Stop();
+            double msLinkedList = swLinkedList.Elapsed.TotalMilliseconds;
 
-            // 3. Prueba .NET List<T> (Array Dinámico)
-            var listaL = new List<Pista>();
-            var sw3 = Stopwatch.StartNew();
-            for (int i = 0; i < cantidad; i++)
+            // -------------------------------------------------------------
+            // 3. INSERCIÓN REAL: .NET List<T> (Array Dinámico)
+            // -------------------------------------------------------------
+            Stopwatch swList = Stopwatch.StartNew();
+            for (int i = 1; i <= cantidadDatos; i++)
             {
-                if (listaL.Count == 0) listaL.Add(new Pista(i, $"Pista {i}", "Artista Test", 120, 180));
-                else listaL.Insert(1, new Pista(i, $"Pista {i}", "Artista Test", 120, 180));
+                _colaList.Add(new Pista(i, $"Pista {i}", "Artista Benchmark", 120 + (i % 40), 180));
             }
-            sw3.Stop();
+            swList.Stop();
+            double msList = swList.Elapsed.TotalMilliseconds;
 
-            // Actualizar etiquetas del panel inferior
-            if (lblResultPropia != null)
-                lblResultPropia.Text = $"- Lista Propia (Nodos): {sw1.Elapsed.TotalMilliseconds:F1} ms | Operaciones: Inserción intermedia O(1)";
+            // Refrescar la vista del DataGridView en pantalla
+            ActualizarVista();
 
-            if (lblResultLinkedList != null)
-                lblResultLinkedList.Text = $"- .NET LinkedList<T>: {sw2.Elapsed.TotalMilliseconds:F1} ms | Operaciones: Inserción con LinkedListNode O(1)";
+            // Despliegue de Resultados
+            string resultado = $"📊 TIEMPOS DE INSERCIÓN REAL ({cantidadDatos:N0} REGISTROS)\n\n" +
+                               $"• Lista Simple Propia: {msPropia:F2} ms\n" +
+                               $"• .NET LinkedList<T>: {msLinkedList:F2} ms\n" +
+                               $"• .NET List<T>: {msList:F2} ms\n\n" +
+                               $"Los 25,000 datos ya se encuentran cargados en las listas del sistema.";
 
-            if (lblResultList != null)
-                lblResultList.Text = $"- .NET List<T> (Array Din.): {sw3.Elapsed.TotalMilliseconds:F1} ms | Operaciones: Insert(idx) sufre degradación por Array.Copy";
+            MessageBox.Show(resultado, "Benchmark Completado", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
+
+        private void btnCargarAudio_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.Filter = "Archivos de audio (*.mp3;*.wav)|*.mp3;*.wav|Todos los archivos (*.*)|*.*";
+                openFileDialog.Title = "Seleccionar canción para analizar BPM";
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    string rutaArchivo = openFileDialog.FileName;
+                    string nombreCancion = System.IO.Path.GetFileNameWithoutExtension(rutaArchivo);
+
+                    // 1. Calculamos el BPM y la duración real usando la clase que creamos
+                    int bpmCalculado = AudioBpmAnalyzer.CalcularBpmDesdeArchivo(rutaArchivo);
+                    int duracionSegundos = AudioBpmAnalyzer.ObtenerDuracionSegundos(rutaArchivo);
+
+                    // 2. Formateamos la duración a minutos:segundos (ej. 03:45)
+                    TimeSpan tiempo = TimeSpan.FromSeconds(duracionSegundos);
+                    string duracionFormateada = tiempo.ToString(@"mm\:ss");
+
+                    // 3. Mostramos un mensaje con los resultados obtenidos
+                    MessageBox.Show(
+                        $"Canción: {nombreCancion}\n" +
+                        $"BPM Estimado: {bpmCalculado}\n" +
+                        $"Duración: {duracionFormateada}",
+                        "Análisis de Audio Completado",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information
+                    );
+
+                    // Opcional: Aquí puedes agregar el objeto a tu DataGridView, ListBox o Lista de canciones.
+                }
+            }
+        }
+
+        
     }
 }
